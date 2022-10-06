@@ -5,7 +5,7 @@ from cv2 import putText
 import numpy as np
 # Choose your webcam: 0, 1, ...
 # cap = cv2.VideoCapture(0)
-cap = cv2.VideoCapture("./ComputerVision/2022-04-12 10-19-54.mp4")
+cap = cv2.VideoCapture("2022-04-12 10-19-54.mp4")
 
 cv2.namedWindow('Threshold Sliders')
 def doNothing(x):
@@ -16,11 +16,15 @@ cv2.createTrackbar('R-B_thresh', 'Threshold Sliders', 128, 255, doNothing)
 #cv2.createTrackbar('R-G+100', 'Threshold Sliders', 100, 200, doNothing)
 sharpen_kernel = np.array([[-1,-1,-1], [-1,9,-1], [-1,-1,-1]])
 blur_kernel = np.ones((3,3),np.float32)/9
-print(cap.get(cv2.CAP_PROP_FPS))
 while(True):
 # for i in range(1):
 	# Get one frame from the camera
 	ret, frame = cap.read()
+
+	height, width, layers = frame.shape
+	frame = cv2.resize(frame, (int(width/2), int(height/2)))
+
+
 	b,g,r = cv2.split(frame)
 	zeros = np.zeros(frame.shape[:2], dtype="uint8")
 
