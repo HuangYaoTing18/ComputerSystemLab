@@ -7,7 +7,7 @@ from cv2 import waitKey
 import numpy as np
 # Choose your webcam: 0, 1, ...
 # cap = cv2.VideoCapture(0)
-cap = cv2.VideoCapture("numbers.mp4")
+cap = cv2.VideoCapture("number_4_to_9.mp4")
 
 # cv2.namedWindow('Threshold Sliders')
 def doNothing(x):
@@ -23,6 +23,7 @@ frame_count = 0
 
 is_tracing = False
 last_time_tracing = -1
+img_count = 8
 
 while(True):
 	frame_count += 1
@@ -73,13 +74,13 @@ while(True):
 			cv2.circle(display, (int(x), int(y)), int(radius), (0,0,0), -1)
 			continue
 		circle_count += 1
-		if circle_count > 1:
-			print("Noise")
-			break
-		cv2.circle(display, (int(x), int(y)), int(radius), (0, 0, 0), -1)
-		cv2.circle(display, (int(x), int(y)), int(radius/3), (255,255,255), -1)
+		# if circle_count > 1:
+		# 	print("Noise")
+		# 	break
+		# cv2.circle(display, (int(x), int(y)), int(radius), (0, 0, 0), -1)
+		# cv2.circle(display, (int(x), int(y)), int(radius/3), (255,255,255), -1)
 		cv2.circle(display, (int(x), int(y)), int(radius), (255,255,255), -1)
-		print("x: ", x, "y: ", y, "radius: ", radius)
+		# print("x: ", x, "y: ", y, "radius: ", radius)
 		if is_tracing:
 			digit_images = cv2.bitwise_or(digit_images, RminusB)
 			last_time_tracing = frame_count
@@ -88,11 +89,13 @@ while(True):
 			digit_images = cv2.bitwise_or(digit_images, RminusB)
 			is_tracing = True
 			last_time_tracing = frame_count
-	if circle_count == 0 and frame_count - last_time_tracing > 15 and is_tracing:
+	if circle_count == 0 and frame_count - last_time_tracing > 10 and is_tracing:
 		is_tracing = False
 		digit_images = cv2.flip(digit_images, 1)
-		cv2.imsave("digit_images.png", digit_images)
-		cv2.imshow("digit_images", digit_images)
+		print(cv2.imwrite("./images/digit_images_" + str(img_count) + ".png", digit_images))
+		img_count += 1
+		# cv2.imshow("digit_images", digit_images)
+		# cv2.waitKey(0)
 		# print(area,(x,y), radius)
 		# cv2.putText(display, str((x,y)), (int(x),int(y)),cv2.FONT_HERSHEY_SIMPLEX, 10, color=(0,255,0))
 	cv2.imshow("display", display)
@@ -115,7 +118,7 @@ while(True):
 	# cv2.imshow('frame', frame)
 	# Press q to quit
 	# cv2.waitKey(0)
-	if cv2.waitKey(50) & 0xFF == ord('q'):
+	if cv2.waitKey(1) & 0xFF == ord('q'):
 		break
 
 # Release the camera
