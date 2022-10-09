@@ -7,7 +7,7 @@ from cv2 import waitKey
 import numpy as np
 # Choose your webcam: 0, 1, ...
 # cap = cv2.VideoCapture(0)
-cap = cv2.VideoCapture("number_4_to_9.mp4")
+cap = cv2.VideoCapture("numbers.mp4")
 
 # cv2.namedWindow('Threshold Sliders')
 def doNothing(x):
@@ -23,7 +23,7 @@ frame_count = 0
 
 is_tracing = False
 last_time_tracing = -1
-img_count = 8
+img_count = 0
 
 while(True):
 	frame_count += 1

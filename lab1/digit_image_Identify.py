@@ -7,7 +7,7 @@ from cv2 import waitKey
 import numpy as np
 # Choose your webcam: 0, 1, ...
 # cap = cv2.VideoCapture(0)
-cap = cv2.VideoCapture("number_4_to_9.mp4")
+cap = cv2.VideoCapture("videos/number_4_to_9.mp4")
 knn = cv2.ml.KNearest_load('mnist_knn.xml')   # 載入模型
 
 # cv2.namedWindow('Threshold Sliders')
