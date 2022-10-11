@@ -6,12 +6,64 @@ from cv2 import putText
 from cv2 import waitKey
 import numpy as np
 # Choose your webcam: 0, 1, ...
-cap = cv2.VideoCapture(0)
-# cap = cv2.VideoCapture("videos/numbers.mp4")
+# cap = cv2.VideoCapture(0)
+cap = cv2.VideoCapture("videos/re_gesture.mp4")
 
 # cv2.namedWindow('Threshold Sliders')
 def doNothing(x):
 	pass
+
+
+def recongzize(L):
+	multiTouchS = None
+	multiTouchT = None
+	multiTouch = False
+	for i in range(len(L)-1):
+		if L[i][0] == L[i+1][0]:
+			if multiTouchS is None:
+				multiTouchS = (L[i][1], L[i+1][1])
+			multiTouchT = (L[i][1], L[i+1][1])
+			multiTouch = True
+	if multiTouch:
+		S1, S2 = multiTouchS
+		T1, T2 = multiTouchT
+		if S1[0] > S2[0]:
+			S1, S2 = S2, S1
+		if T1[0] > T2[0]:
+			T1, T2 = T2, T1
+		if S1[0] < T1[0] and S2[0] > T2[0]:
+			return "Zoom in"
+		else:
+			return "Zoom out"
+
+
+	else:
+		S = L[0][1]
+		T = L[-1][1]
+		pathLen = np.linalg.norm(np.array(T) - np.array(S))
+		print(pathLen)
+		for i in range(len(L)-1):
+			if L[i][0] + 5 < L[i+1][0]: 				# harded coded frame number
+				return "Double Tap"
+		eps = 20			# hard coded size
+		if pathLen < 1.5*eps:		# hard coded size
+			if L[-1][0] - L[0][0] > 20:             	# harded coded frame number
+				return "Long Tap"
+			return "Tap"
+		else:
+			hDelta = T[0] - S[0]
+			vDelta = T[1] - S[1]
+			if abs(hDelta) > abs(vDelta):
+				if S[0] - T[0] > eps:
+					return "Left"
+				else:
+					return "Right"
+			else:
+				if S[1] - T[1] > eps:
+					return "Down"
+				else:
+					return "Up"
+		
 # cv2.createTrackbar('R', 'Threshold Sliders', 142, 255, doNothing)
 # cv2.createTrackbar('delta', 'Threshold Sliders', 100, 200, doNothing)
 # cv2.createTrackbar('R-B_thresh', 'Threshold Sliders', 128, 255, doNothing)
@@ -25,6 +77,8 @@ is_tracing = False
 last_time_tracing = -1
 img_count = 0
 lastX,lastY = None,None
+
+traecdPoints = []
 
 while(True):
 	frame_count += 1
@@ -40,8 +94,8 @@ while(True):
 	zeros = np.zeros(frame.shape[:2], dtype="uint8")
 
 	# thresR = cv2.getTrackbarPos('R', 'Threshold Sliders')
-	thresR = 10
-	thresB = 10
+	thresR = 30
+	thresB = 30
 	# thresB = thresR - cv2.getTrackbarPos('delta', 'Threshold Sliders')+100
 	# thresRmB = cv2.getTrackbarPos('R-B_thresh', 'Threshold Sliders')+100
 	# thresG = thresR - cv2.getTrackbarPos('R-G+100', 'Threshold Sliders')+100
@@ -58,7 +112,7 @@ while(True):
 	RminusB = cv2.bitwise_and(r, cv2.bitwise_not(b), mask=None)
 	RminusB = cv2.GaussianBlur(RminusB, (5, 5), 0)
 	RminusB = cv2.threshold(RminusB, 10, 255, cv2.THRESH_BINARY)[1]
-	cv2.imshow("R-B", cv2.merge([RminusB, RminusB, RminusB]))
+	# cv2.imshow("R-B", cv2.merge([RminusB, RminusB, RminusB]))
 
 	contours, hierarchy = cv2.findContours(RminusB,
 	cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -75,60 +129,24 @@ while(True):
 		area = cv2.contourArea(cnt) 
 		# Find the centroid
 		(x,y), radius = cv2.minEnclosingCircle(cnt)
-		if radius < 15:
+		if radius < 30:						# harded coded size
 			continue
 		circle_count += 1
-		# if circle_count > 1:
-		# 	print("Noise")
-		# 	break
-		# cv2.circle(display, (int(x), int(y)), int(radius), (0, 0, 0), -1)
-		# cv2.circle(display, (int(x), int(y)), int(radius/3), (255,255,255), -1)
-		cv2.circle(display, (int(x), int(y)), strokeThickness, (255,255,255), -1)
+		traecdPoints.append((frame_count, (int(x), int(y))))
 		# print("x: ", x, "y: ", y, "radius: ", radius)
 		if is_tracing:
-			digit_images = cv2.bitwise_or(digit_images, display)
-			if lastX is not None and frame_count - last_time_tracing < 4:
-				cv2.line(digit_images, (int(lastX), int(lastY)), (int(x), int(y)), 255, strokeThickness)
-				print("x: ", x, "y: ", y, "lastX: ", lastX, "lastY: ", lastY)
-				print(frame_count)
-			lastX, lastY = x, y
 			last_time_tracing = frame_count
 		else:
-			digit_images = np.zeros(frame.shape[:2], dtype="uint8")
-			digit_images = cv2.bitwise_or(digit_images, display)
-			lastX,lastY = int(x), int(y)
 			is_tracing = True
 			last_time_tracing = frame_count
-	if circle_count == 0 and frame_count - last_time_tracing > 10 and is_tracing:
+	if circle_count == 0 and frame_count - last_time_tracing > 10 and is_tracing: # harded coded frame number
+		print(recongzize(traecdPoints))
 		is_tracing = False
 		lastX,lastY = None,None
-		digit_images = cv2.flip(digit_images, 1)
-		# print(cv2.imwrite("./images/digit_images_" + str(img_count) + ".png", digit_images))
 		img_count += 1
-		# cv2.imshow("digit_images", digit_images)
-		# cv2.waitKey(0)
-		# print(area,(x,y), radius)
-		# cv2.putText(display, str((x,y)), (int(x),int(y)),cv2.FONT_HERSHEY_SIMPLEX, 10, color=(0,255,0))
-	cv2.imshow("display", display)
-	# Split RGB channels
-
-
-	# Perform thresholding to each channel
-
-
-	# Get the final result using bitwise operation
-
-
-	# Find and draw contours
-
-
-	# Iterate through each contour, check the area and find the center
-
-
-	# Show the frame
-	# cv2.imshow('frame', frame)
-	# Press q to quit
-	# cv2.waitKey(0)
+		traecdPoints = []
+		cv2.waitKey(0)
+	cv2.imshow("RminusB", RminusB)
 	if cv2.waitKey(1) & 0xFF == ord('q'):
 		break
 
