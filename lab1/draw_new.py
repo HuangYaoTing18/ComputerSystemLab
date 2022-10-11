@@ -1,14 +1,42 @@
 import imp
 from tracemalloc import is_tracing
-from attr import NOTHING
+#from attr import NOTHING
 import cv2
 from cv2 import putText
 from cv2 import waitKey
 import numpy as np
+from tflite_runtime.interpreter import Interpreter
+interpreter = Interpreter(model_path='./mnist.tflite') # 準備模型
+
 # Choose your webcam: 0, 1, ...
 # cap = cv2.VideoCapture(0)
 cap = cv2.VideoCapture("videos/numbers.mp4")
 
+class Model:
+	def __init__(self,path):
+		from tflite_runtime.interpreter import Interpreter
+		self.interpreter = Interpreter(model_path=path) # TF Lite 模型
+		# 準備模型
+		self.interpreter.allocate_tensors()
+		self.input_details = self.interpreter.get_input_details()
+		self.output_details = self.interpreter.get_output_details()
+		# 讀取輸入長寬
+		self.INPUT_H, self.INPUT_W = self.input_details[0]['shape'][1:3]
+	def predict(self,image):
+		# 調整影像為模型輸入大小
+		img_digit = cv2.resize(image, (self.INPUT_W, self.INPUT_H), interpolation=cv2.INTER_AREA)
+		cv2.imwrite("./images/digit_test_images_" + str(img_count) + ".png", img_digit)	# 儲存辨識影像以確認影響調整無誤
+		# 做預測
+		self.interpreter.set_tensor(self.input_details[0]['index'], np.expand_dims(img_digit, axis=0))
+		self.interpreter.invoke()
+		predicted = self.interpreter.get_tensor(self.output_details[0]['index']).flatten()
+		# 讀取預測標籤及其概率
+		label = predicted.argmax(axis=0)
+		prob = predicted[label]
+		# 印出預測結果、概率與數字的位置
+		print(f'Detected digit: [{label}] ({prob*100:.3f}%)',img_count)
+
+model1 = Model('./mnist.tflite')
 # cv2.namedWindow('Threshold Sliders')
 def doNothing(x):
 	pass
@@ -89,8 +117,8 @@ while(True):
 			digit_images = cv2.bitwise_or(digit_images, display)
 			if lastX is not None and frame_count - last_time_tracing < 4:
 				cv2.line(digit_images, (int(lastX), int(lastY)), (int(x), int(y)), 255, strokeThickness)
-				print("x: ", x, "y: ", y, "lastX: ", lastX, "lastY: ", lastY)
-				print(frame_count)
+				# print("x: ", x, "y: ", y, "lastX: ", lastX, "lastY: ", lastY)
+				# print(frame_count)
 			lastX, lastY = x, y
 			last_time_tracing = frame_count
 		else:
@@ -103,6 +131,7 @@ while(True):
 		is_tracing = False
 		lastX,lastY = None,None
 		digit_images = cv2.flip(digit_images, 1)
+		model1.predict(digit_images.copy())
 		print(cv2.imwrite("./images/digit_images_" + str(img_count) + ".png", digit_images))
 		img_count += 1
 		# cv2.imshow("digit_images", digit_images)
