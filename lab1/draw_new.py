@@ -24,6 +24,7 @@ frame_count = 0
 is_tracing = False
 last_time_tracing = -1
 img_count = 0
+lastX,lastY = None,None
 
 while(True):
 	frame_count += 1
@@ -62,11 +63,10 @@ while(True):
 	contours, hierarchy = cv2.findContours(RminusB,
 	cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 	# Draw the contours (for debugging)
-	display = cv2.merge([zeros,zeros,zeros])
+	display = zeros
 
-	strokeThickness = 2
+	strokeThickness = 10
 
-	lastX,lastY = None,None
 
 
 	circle_count = 0
@@ -87,7 +87,10 @@ while(True):
 		# print("x: ", x, "y: ", y, "radius: ", radius)
 		if is_tracing:
 			digit_images = cv2.bitwise_or(digit_images, display)
-			cv2.line(digit_images, (int(lastX), int(lastY)), (int(x), int(y)), 255, strokeThickness)
+			if lastX is not None and frame_count - last_time_tracing < 4:
+				cv2.line(digit_images, (int(lastX), int(lastY)), (int(x), int(y)), 255, strokeThickness)
+				print("x: ", x, "y: ", y, "lastX: ", lastX, "lastY: ", lastY)
+				print(frame_count)
 			lastX, lastY = x, y
 			last_time_tracing = frame_count
 		else:
