@@ -12,7 +12,7 @@ interpreter = Interpreter(model_path='./mnist.tflite') # 準備模型
 # cap = cv2.VideoCapture(0)
 cap = cv2.VideoCapture("videos/numbers.mp4")
 
-class Model:
+class Model_AutoKeras:
 	def __init__(self,path):
 		from tflite_runtime.interpreter import Interpreter
 		self.interpreter = Interpreter(model_path=path) # TF Lite 模型
@@ -24,6 +24,7 @@ class Model:
 		self.INPUT_H, self.INPUT_W = self.input_details[0]['shape'][1:3]
 	def predict(self,image):
 		# 調整影像為模型輸入大小
+		image = image[40:, 200:]
 		img_digit = cv2.resize(image, (self.INPUT_W, self.INPUT_H), interpolation=cv2.INTER_AREA)
 		cv2.imwrite("./images/digit_test_images_" + str(img_count) + ".png", img_digit)	# 儲存辨識影像以確認影響調整無誤
 		# 做預測
@@ -36,7 +37,26 @@ class Model:
 		# 印出預測結果、概率與數字的位置
 		print(f'Detected digit: [{label}] ({prob*100:.3f}%)',img_count)
 
-model1 = Model('./mnist.tflite')
+modelAutoKeras = Model_AutoKeras('./mnist2.tflite')
+
+class Model_KNN:
+	def __init__(self,path):
+		self.knn = cv2.ml.KNearest_load(path)   # 載入模型
+	def predict(self,image):
+		img_num = image[45:, 200:]          # 擷取辨識的區域(因為原圖嚴重右移，會影響辨識率)
+
+		img_num = cv2.resize(img_num,(28,28))   # 縮小成 28x28，和訓練模型對照
+		cv2.imwrite("./images/digit_test_images_" + str(img_count) + ".png", img_num)	# 儲存辨識影像以確認影響調整無誤
+
+		img_num = img_num.astype(np.float32)    # 轉換格式
+		img_num = img_num.reshape(-1,)          # 打散成一維陣列資料，轉換成辨識使用的格式
+		img_num = img_num.reshape(1,-1)
+		img_num = img_num/255
+		img_pre = self.knn.predict(img_num)          # 進行辨識
+		num = str(int(img_pre[1][0][0]))        # 取得辨識結果
+		print(f'Detected digit: [{num}]', img_count)
+
+modelKnn = Model_KNN('./mnist_knn.xml')
 # cv2.namedWindow('Threshold Sliders')
 def doNothing(x):
 	pass
@@ -131,7 +151,8 @@ while(True):
 		is_tracing = False
 		lastX,lastY = None,None
 		digit_images = cv2.flip(digit_images, 1)
-		model1.predict(digit_images.copy())
+		modelAutoKeras.predict(digit_images.copy())
+		#modelKnn.predict(digit_images.copy())
 		print(cv2.imwrite("./images/digit_images_" + str(img_count) + ".png", digit_images))
 		img_count += 1
 		# cv2.imshow("digit_images", digit_images)
